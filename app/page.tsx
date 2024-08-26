@@ -9,33 +9,33 @@ import { Spade, Heart, Diamond, Club } from 'lucide-react'
 const suits = ['♠', '♥', '♦', '♣'] as const
 const values = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'] as const
 
-// Define types for suits and card values
 type Suit = typeof suits[number]
 type Value = typeof values[number]
 
-interface Card {
+interface PlayingCard {
   suit: Suit
   value: Value
 }
 
 // Create a deck of cards
-const createDeck = (): Card[] => {
+const createDeck = (): PlayingCard[] => {
   return suits.flatMap(suit => 
     values.map(value => ({ suit, value }))
   )
 }
 
 // Shuffle the deck
-const shuffleDeck = (deck: Card[]): Card[] => {
-  for (let i = deck.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1))
-    ;[deck[i], deck[j]] = [deck[j], deck[i]]
+const shuffleDeck = (deck: PlayingCard[]): PlayingCard[] => {
+  const newDeck = [...deck]
+  for (let i = newDeck.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [newDeck[i], newDeck[j]] = [newDeck[j], newDeck[i]]
   }
-  return deck
+  return newDeck
 }
 
 // Calculate the value of a hand
-const calculateHandValue = (hand: Card[]): number => {
+const calculateHandValue = (hand: PlayingCard[]): number => {
   let value = 0
   let aces = 0
   for (let card of hand) {
@@ -56,11 +56,11 @@ const calculateHandValue = (hand: Card[]): number => {
 }
 
 export default function Blackjack() {
-  const [deck, setDeck] = useState<Card[]>([])
-  const [playerHand, setPlayerHand] = useState<Card[]>([])
-  const [dealerHand, setDealerHand] = useState<Card[]>([])
+  const [deck, setDeck] = useState<PlayingCard[]>([])
+  const [playerHand, setPlayerHand] = useState<PlayingCard[]>([])
+  const [dealerHand, setDealerHand] = useState<PlayingCard[]>([])
   const [gameState, setGameState] = useState<'betting' | 'playing' | 'dealerTurn' | 'gameOver'>('betting')
-  const [message, setMessage] = useState<string>('')
+  const [message, setMessage] = useState('')
 
   // Initialize the game
   useEffect(() => {
@@ -70,17 +70,18 @@ export default function Blackjack() {
   const startNewGame = () => {
     const newDeck = shuffleDeck(createDeck())
     setDeck(newDeck)
-    setPlayerHand([newDeck.pop() as Card, newDeck.pop() as Card])
-    setDealerHand([newDeck.pop() as Card, newDeck.pop() as Card])
+    setPlayerHand([newDeck[0], newDeck[1]])
+    setDealerHand([newDeck[2], newDeck[3]])
     setGameState('playing')
     setMessage('')
+    setDeck(newDeck.slice(4))
   }
 
   const hit = () => {
     if (gameState !== 'playing') return
-    const newPlayerHand = [...playerHand, deck.pop() as Card]
+    const newPlayerHand = [...playerHand, deck[0]]
     setPlayerHand(newPlayerHand)
-    setDeck([...deck])
+    setDeck(deck.slice(1))
     if (calculateHandValue(newPlayerHand) > 21) {
       setGameState('gameOver')
       setMessage('Player busts! Dealer wins.')
@@ -93,7 +94,8 @@ export default function Blackjack() {
     let newDealerHand = [...dealerHand]
     let newDeck = [...deck]
     while (calculateHandValue(newDealerHand) < 17) {
-      newDealerHand.push(newDeck.pop() as Card)
+      newDealerHand.push(newDeck[0])
+      newDeck = newDeck.slice(1)
     }
     setDealerHand(newDealerHand)
     setDeck(newDeck)
@@ -111,7 +113,7 @@ export default function Blackjack() {
     setGameState('gameOver')
   }
 
-  const renderCard = (card: Card) => {
+  const renderCard = (card: PlayingCard) => {
     const suitIcon = {
       '♠': <Spade className="h-6 w-6 text-black" />,
       '♥': <Heart className="h-6 w-6 text-red-500" />,
